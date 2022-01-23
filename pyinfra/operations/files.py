@@ -560,7 +560,7 @@ def sync(
     if dest_link_info:
         dest_to_ensure = dest_link_info['link_target']
 
-    yield directory(
+    yield from directory(
         dest_to_ensure,
         user=user, group=group,
         mode=get_path_permissions_mode(src),
@@ -568,14 +568,14 @@ def sync(
 
     # Ensure any remote dirnames
     for dirpath, dir_mode in ensure_dirnames:
-        yield directory(
+        yield from directory(
             unix_path_join(dest, dirpath),
             user=user, group=group, mode=dir_mode,
         )
 
     # Put each file combination
     for local_filename, remote_filename in put_files:
-        yield put(
+        yield from put(
             local_filename, remote_filename,
             user=user, group=group,
             mode=mode or get_path_permissions_mode(local_filename),
@@ -593,7 +593,7 @@ def sync(
             if exclude and any(fnmatch(filename, match) for match in exclude):
                 continue
 
-            yield file(filename, present=False)
+            yield from file(filename, present=False)
 
 
 @memoize
@@ -630,7 +630,7 @@ def _create_remote_dir(state, host, remote_filename, user, group):
     # Always use POSIX style path as local might be Windows, remote always *nix
     remote_dirname = posixpath.dirname(remote_filename)
     if remote_dirname:
-        yield directory(
+        yield from directory(
             path=remote_dirname,
             user=user, group=group,
             _no_check_owner_mode=True,  # don't check existing user/mode
@@ -773,7 +773,7 @@ def put(
         dest = unix_path_join(dest, os_path.basename(src))
 
     if create_remote_dir:
-        yield _create_remote_dir(state, host, dest, user, group)
+        yield from _create_remote_dir(state, host, dest, user, group)
 
     local_sum = get_file_sha1(src)
 
@@ -946,7 +946,7 @@ def template(
     output_file.template = src
 
     # Pass to the put function
-    yield put(
+    yield from put(
         output_file, dest,
         user=user, group=group, mode=mode,
         add_deploy_dir=False,
@@ -1045,7 +1045,7 @@ def link(
 
     # Not a link?
     if info is False:
-        yield _raise_or_remove_invalid_path(
+        yield from _raise_or_remove_invalid_path(
             'link', path, force, force_backup, force_backup_dir,
         )
         info = None
@@ -1060,7 +1060,7 @@ def link(
     # No link and we want it
     if not assume_present and info is None and present:
         if create_remote_dir:
-            yield _create_remote_dir(state, host, path, user, group)
+            yield from _create_remote_dir(state, host, path, user, group)
 
         yield add_cmd
 
@@ -1176,7 +1176,7 @@ def file(
 
     # Not a file?!
     if info is False:
-        yield _raise_or_remove_invalid_path(
+        yield from _raise_or_remove_invalid_path(
             'file', path, force, force_backup, force_backup_dir,
         )
         info = None
@@ -1184,7 +1184,7 @@ def file(
     # Doesn't exist & we want it
     if not assume_present and info is None and present:
         if create_remote_dir:
-            yield _create_remote_dir(state, host, path, user, group)
+            yield from _create_remote_dir(state, host, path, user, group)
 
         yield StringCommand('touch', QuoteString(path))
 
@@ -1300,7 +1300,7 @@ def directory(
         if _no_fail_on_link and host.get_fact(Link, path=path):
             host.noop('directory {0} already exists (as a link)'.format(path))
             return
-        yield _raise_or_remove_invalid_path(
+        yield from _raise_or_remove_invalid_path(
             'directory', path, force, force_backup, force_backup_dir,
         )
         info = None
